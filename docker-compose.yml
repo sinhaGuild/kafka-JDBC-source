@@ -93,10 +93,18 @@ services:
         confluent-hub install --no-prompt confluentinc/kafka-connect-jdbc:10.0.2
         confluent-hub install --no-prompt jcustenborder/kafka-connect-spooldir:2.0.60
         confluent-hub install --no-prompt streamthoughts/kafka-connect-file-pulse:1.5.0
+        confluent-hub install --no-prompt confluentinc/kafka-connect-datagen:0.6.0
+        confluent-hub install --no-prompt debezium/debezium-connector-mysql:1.9.3
+        confluent-hub install --no-prompt debezium/debezium-connector-postgresql:1.9.3
+        confluent-hub install --no-prompt debezium/debezium-connector-mongodb:1.9.3
+        confluent-hub install --no-prompt mongodb/kafka-connect-mongodb:1.8.0
         #
         # -----------
         # Launch the Kafka Connect worker
+        cd /usr/share/java/kafka-connect-jdbc/
+        curl https://cdn.mysql.com//Downloads/Connector-J/mysql-connector-java-8.0.13.tar.gz | tar xz 
         /etc/confluent/docker/run &
+        # /etc/confluent/docker/run &
         #
         # Don't exit
         sleep infinity
@@ -131,6 +139,52 @@ services:
     environment:
      - POSTGRES_USER=postgres
      - POSTGRES_PASSWORD=postgres
+    volumes:
+     - ./data/postgres:/docker-entrypoint-initdb.d/
+  
+  mysql:
+  # *-----------------------------*
+  # To connect to the DB:
+  #   docker-compose exec mysql bash -c 'mysql -u root -p$MYSQL_ROOT_PASSWORD'
+  # *-----------------------------*
+    image: mysql
+    container_name: mysql
+    #custom port configuration as multiple instances
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=Admin123
+      - MYSQL_USER=connect_user
+      - MYSQL_PASSWORD=asgard
+    volumes:
+      - ./data/mysql:/docker-entrypoint-initdb.d/
+  
+  postgres-mkt:
+    # *-----------------------------*
+    # To connect to the DB: 
+    #   docker-compose exec postgres bash -c 'psql -U $POSTGRES_USER $POSTGRES_DB'
+    # *-----------------------------*
+    image: postgres:11
+    container_name: postgres-mkt
+    environment:
+     - POSTGRES_USER=postgres
+     - POSTGRES_PASSWORD=postgres
+    ports:
+     - "5434:5432" 
+    # volumes:
+    #  - ./data/postgres:/docker-entrypoint-initdb.d/
+
+  mongo:
+    image: mongo
+    container_name: mongo
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=mongo
+      - MONGO_INITDB_ROOT_PASSWORD=mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      #save as volume
+      - mongo-db:/data/db
 
   kafkacat:
     image: edenhill/kafkacat:1.6.0
